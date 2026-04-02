@@ -1,0 +1,212 @@
+import { useState, useEffect } from "react";
+import {
+  Title,
+  Button,
+  Select,
+  Textarea,
+  Group,
+  Stack,
+  Paper,
+  Text,
+  Alert,
+} from "@mantine/core";
+import { DateInput } from "@mantine/dates";
+import { useForm } from "@mantine/form";
+import { notifications } from "@mantine/notifications";
+import {
+  IconTool,
+  IconCheck,
+  IconAlertCircle,
+} from "@tabler/icons-react";
+import { useTauriCommand } from "../hooks/useTauriCommand";
+import "dayjs/locale/pt-br";
+
+function RegistrarServico() {
+  const [embarcacoes, setEmbarcacoes] = useState([]);
+  const [funcionarios, setFuncionarios] = useState([]);
+  const [sucesso, setSucesso] = useState(false);
+  const { execute, loading } = useTauriCommand();
+
+  const form = useForm({
+    initialValues: {
+      embarcacao_id: null,
+      funcionario_id: null,
+      descricao: "",
+      data_execucao: new Date(),
+      observacao: "",
+    },
+    validate: {
+      embarcacao_id: (v) => (v === null ? "Selecione uma embarcação" : null),
+      funcionario_id: (v) => (v === null ? "Selecione um funcionário" : null),
+      descricao: (v) => (v.trim().length === 0 ? "Descrição é obrigatória" : null),
+      data_execucao: (v) => (v === null ? "Data é obrigatória" : null),
+    },
+  });
+
+  useEffect(() => {
+    const carregarDados = async () => {
+      try {
+        const [embs, funcs] = await Promise.all([
+          execute("listar_embarcacoes"),
+          execute("listar_funcionarios_ativos"),
+        ]);
+        setEmbarcacoes(embs);
+        setFuncionarios(funcs);
+      } catch (err) {
+        notifications.show({
+          title: "Erro ao carregar dados",
+          message: err,
+          color: "red",
+        });
+      }
+    };
+    carregarDados();
+  }, [execute]);
+
+  const salvar = async (values) => {
+    try {
+      // Formatar data para string
+      const dataStr = values.data_execucao
+        ? values.data_execucao.toISOString().split("T")[0]
+        : "";
+
+      await execute("criar_servico", {
+        data: {
+          embarcacao_id: Number(values.embarcacao_id),
+          funcionario_id: Number(values.funcionario_id),
+          descricao: values.descricao,
+          data_execucao: dataStr,
+          observacao: values.observacao || null,
+        },
+      });
+
+      notifications.show({
+        title: "Serviço registrado",
+        message: "O serviço foi registrado com sucesso",
+        color: "green",
+        icon: <IconCheck size={16} />,
+      });
+
+      form.reset();
+      setSucesso(true);
+      setTimeout(() => setSucesso(false), 5000);
+    } catch (err) {
+      notifications.show({
+        title: "Erro ao registrar",
+        message: err,
+        color: "red",
+      });
+    }
+  };
+
+  const embarcacaoOptions = embarcacoes.map((e) => ({
+    value: String(e.id),
+    label: `${e.nome} — ${e.identificacao}`,
+  }));
+
+  const funcionarioOptions = funcionarios.map((f) => ({
+    value: String(f.id),
+    label: `${f.nome}${f.cargo ? ` (${f.cargo})` : ""}`,
+  }));
+
+  return (
+    <>
+      <Group gap="sm" mb="lg">
+        <IconTool size={28} stroke={1.5} color="var(--mantine-color-blue-6)" />
+        <Title order={2}>Registrar Serviço</Title>
+      </Group>
+
+      {sucesso && (
+        <Alert
+          icon={<IconCheck size={16} />}
+          title="Serviço registrado com sucesso!"
+          color="green"
+          mb="md"
+          withCloseButton
+          onClose={() => setSucesso(false)}
+        >
+          O serviço foi registrado e já está disponível no histórico.
+        </Alert>
+      )}
+
+      {embarcacoes.length === 0 || funcionarios.length === 0 ? (
+        <Alert
+          icon={<IconAlertCircle size={16} />}
+          title="Cadastros necessários"
+          color="yellow"
+        >
+          <Text size="sm">
+            Para registrar um serviço, é necessário ter pelo menos uma embarcação
+            e um funcionário ativo cadastrados.
+          </Text>
+        </Alert>
+      ) : (
+        <Paper shadow="xs" p="xl" radius="md" maw={700}>
+          <form onSubmit={form.onSubmit(salvar)}>
+            <Stack gap="md">
+              <Select
+                label="Embarcação"
+                placeholder="Selecione a embarcação"
+                data={embarcacaoOptions}
+                searchable
+                required
+                nothingFoundMessage="Nenhuma embarcação encontrada"
+                {...form.getInputProps("embarcacao_id")}
+              />
+
+              <Select
+                label="Funcionário Responsável"
+                placeholder="Selecione o funcionário"
+                data={funcionarioOptions}
+                searchable
+                required
+                nothingFoundMessage="Nenhum funcionário ativo encontrado"
+                {...form.getInputProps("funcionario_id")}
+              />
+
+              <DateInput
+                label="Data de Execução"
+                placeholder="Selecione a data"
+                required
+                locale="pt-br"
+                valueFormat="DD/MM/YYYY"
+                {...form.getInputProps("data_execucao")}
+              />
+
+              <Textarea
+                label="Descrição do Serviço"
+                placeholder="Descreva o serviço executado..."
+                required
+                minRows={3}
+                autosize
+                {...form.getInputProps("descricao")}
+              />
+
+              <Textarea
+                label="Observações"
+                placeholder="Observações adicionais (opcional)"
+                minRows={2}
+                autosize
+                {...form.getInputProps("observacao")}
+              />
+
+              <Group justify="flex-end" mt="md">
+                <Button
+                  variant="default"
+                  onClick={() => form.reset()}
+                >
+                  Limpar
+                </Button>
+                <Button type="submit" loading={loading}>
+                  Registrar Serviço
+                </Button>
+              </Group>
+            </Stack>
+          </form>
+        </Paper>
+      )}
+    </>
+  );
+}
+
+export default RegistrarServico;
