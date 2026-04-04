@@ -105,7 +105,7 @@ export default function Usuarios() {
     if (!confirm(`Deseja realmente resetar a senha do usuário ${login}?`)) return;
     
     try {
-      const resp = await invoke("cmd_resetar_senha", { user_id: userId });
+      const resp = await invoke("cmd_resetar_senha", { userId });
       setResetModalData({
         login,
         senha_temporaria: resp.senha_temporaria,
@@ -136,8 +136,6 @@ export default function Usuarios() {
           <Text c="dimmed" size="sm">Controle de acesso ao sistema</Text>
         </div>
         <Button 
-          leftSection={<IconUserPlus size={16} />} 
-          onClick={() => setCreateOpened(true)}
           radius="md"
         >
           Novo Usuário
