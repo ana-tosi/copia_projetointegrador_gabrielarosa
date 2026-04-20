@@ -24,9 +24,9 @@ pub fn atualizar_status_servico(
 ) -> Result<Servico, String> {
     let conn = state.db.lock().map_err(|e| e.to_string())?;
     let session_lock = state.session.lock().map_err(|e| e.to_string())?;
-    let _session = guard::require_authenticated(&session_lock).map_err(String::from)?;
+    let session = guard::require_authenticated(&session_lock).map_err(String::from)?;
 
-    servico_service::atualizar_status(&conn, data).map_err(|e| e.to_string())
+    servico_service::atualizar_status(&conn, session, data).map_err(|e| e.to_string())
 }
 
 #[tauri::command]

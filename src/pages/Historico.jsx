@@ -23,6 +23,7 @@ import {
   IconShip,
 } from "@tabler/icons-react";
 import { useTauriCommand } from "../hooks/useTauriCommand";
+import { useAuth } from "../contexts/AuthContext";
 
 const STATUS_CONFIG = {
   pendente: { label: "Pendente", color: "yellow" },
@@ -36,6 +37,7 @@ function Historico() {
   const [embarcacaoSelecionada, setEmbarcacaoSelecionada] = useState(null);
   const [carregandoServicos, setCarregandoServicos] = useState(false);
   const { execute, loading } = useTauriCommand();
+  const { isAdmin } = useAuth();
 
   useEffect(() => {
     const carregarEmbarcacoes = async () => {
@@ -139,6 +141,12 @@ function Historico() {
     }
   };
 
+  const podeIniciarExecucao = (status) => status === "pendente";
+  const podeConcluirServico = (status) =>
+    isAdmin && (status === "pendente" || status === "em_execucao");
+  const podeAlterarStatus = (status) =>
+    status !== "concluido" && (podeIniciarExecucao(status) || podeConcluirServico(status));
+
   return (
     <>
       <Group gap="sm" mb="lg">
@@ -185,7 +193,7 @@ function Historico() {
                 <Table.Th>Data</Table.Th>
                 <Table.Th>Embarcação</Table.Th>
                 <Table.Th>Funcionário</Table.Th>
-                <Table.Th>Descrição</Table.Th>
+                <Table.Th>Serviços Realizados</Table.Th>
                 <Table.Th>Status</Table.Th>
                 <Table.Th w={60}>Ações</Table.Th>
               </Table.Tr>
@@ -222,7 +230,7 @@ function Historico() {
                       </Badge>
                     </Table.Td>
                     <Table.Td>
-                      {srv.status !== "concluido" && (
+                      {podeAlterarStatus(srv.status) && (
                         <Menu shadow="md" width={200}>
                           <Menu.Target>
                             <Tooltip label="Alterar status">
@@ -233,7 +241,7 @@ function Historico() {
                           </Menu.Target>
                           <Menu.Dropdown>
                             <Menu.Label>Alterar Status</Menu.Label>
-                            {srv.status === "pendente" && (
+                            {podeIniciarExecucao(srv.status) && (
                               <Menu.Item
                                 leftSection={<IconPlayerPlay size={14} />}
                                 onClick={() =>
@@ -243,8 +251,7 @@ function Historico() {
                                 Iniciar Execução
                               </Menu.Item>
                             )}
-                            {(srv.status === "pendente" ||
-                              srv.status === "em_execucao") && (
+                            {podeConcluirServico(srv.status) && (
                               <Menu.Item
                                 leftSection={<IconCheck size={14} />}
                                 color="green"

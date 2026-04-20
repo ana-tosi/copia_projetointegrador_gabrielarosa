@@ -26,6 +26,7 @@ import {
   IconShip,
 } from "@tabler/icons-react";
 import { useTauriCommand } from "../hooks/useTauriCommand";
+import { useAuth } from "../contexts/AuthContext";
 
 const STATUS_LABELS = {
   ativa: "Ativa",
@@ -50,6 +51,7 @@ function Embarcacoes() {
   const [editando, setEditando] = useState(null);
   const [busca, setBusca] = useState("");
   const { execute, loading } = useTauriCommand();
+  const { isAdmin } = useAuth();
 
   const form = useForm({
     initialValues: {
@@ -88,12 +90,14 @@ function Embarcacoes() {
   }, [carregarDados]);
 
   const abrirNovo = () => {
+    if (!isAdmin) return;
     setEditando(null);
     form.reset();
     setModalAberto(true);
   };
 
   const abrirEditar = (emb) => {
+    if (!isAdmin) return;
     setEditando(emb);
     form.setValues({
       nome: emb.nome,
@@ -157,9 +161,11 @@ function Embarcacoes() {
           <IconShip size={28} stroke={1.5} color="var(--mantine-color-blue-6)" />
           <Title order={2}>Embarcações</Title>
         </Group>
-        <Button leftSection={<IconPlus size={16} />} onClick={abrirNovo}>
-          Nova Embarcação
-        </Button>
+        {isAdmin && (
+          <Button leftSection={<IconPlus size={16} />} onClick={abrirNovo}>
+            Nova Embarcação
+          </Button>
+        )}
       </Group>
 
       <Paper shadow="xs" p="md" radius="md" mb="md">
@@ -181,9 +187,11 @@ function Embarcacoes() {
             <Stack align="center" gap="xs">
               <IconShip size={48} stroke={1} color="var(--mantine-color-gray-4)" />
               <Text c="dimmed">Nenhuma embarcação cadastrada</Text>
-              <Button variant="light" size="sm" onClick={abrirNovo}>
-                Cadastrar primeira embarcação
-              </Button>
+              {isAdmin && (
+                <Button variant="light" size="sm" onClick={abrirNovo}>
+                  Cadastrar primeira embarcação
+                </Button>
+              )}
             </Stack>
           </Center>
         </Paper>
@@ -198,7 +206,7 @@ function Embarcacoes() {
                 <Table.Th>Modelo</Table.Th>
                 <Table.Th>Cliente</Table.Th>
                 <Table.Th>Status</Table.Th>
-                <Table.Th w={60}>Ações</Table.Th>
+                {isAdmin && <Table.Th w={60}>Ações</Table.Th>}
               </Table.Tr>
             </Table.Thead>
             <Table.Tbody>
@@ -226,17 +234,19 @@ function Embarcacoes() {
                       {STATUS_LABELS[emb.status] || emb.status}
                     </Badge>
                   </Table.Td>
-                  <Table.Td>
-                    <Tooltip label="Editar">
-                      <ActionIcon
-                        variant="subtle"
-                        color="blue"
-                        onClick={() => abrirEditar(emb)}
-                      >
-                        <IconEdit size={16} />
-                      </ActionIcon>
-                    </Tooltip>
-                  </Table.Td>
+                  {isAdmin && (
+                    <Table.Td>
+                      <Tooltip label="Editar">
+                        <ActionIcon
+                          variant="subtle"
+                          color="blue"
+                          onClick={() => abrirEditar(emb)}
+                        >
+                          <IconEdit size={16} />
+                        </ActionIcon>
+                      </Tooltip>
+                    </Table.Td>
+                  )}
                 </Table.Tr>
               ))}
             </Table.Tbody>

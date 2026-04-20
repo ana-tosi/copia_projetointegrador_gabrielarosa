@@ -3,12 +3,14 @@ import {
   Title,
   Button,
   Select,
+  Checkbox,
   Textarea,
   Group,
   Stack,
   Paper,
   Text,
   Alert,
+  SimpleGrid,
 } from "@mantine/core";
 import { DateInput } from "@mantine/dates";
 import { useForm } from "@mantine/form";
@@ -21,6 +23,22 @@ import {
 import { useTauriCommand } from "../hooks/useTauriCommand";
 import "dayjs/locale/pt-br";
 
+const servicoOptions = [
+  "Limpeza",
+  "Lavagem",
+  "Motor",
+  "Guincho da âncora",
+  "Luzes de navegação",
+  "Rádio de som",
+  "radio VHF",
+  "Buzina",
+].sort((a, b) => a.localeCompare(b, "pt-BR", { sensitivity: "base" }));
+
+const servicoOptionColumns = [
+  servicoOptions.slice(0, 4),
+  servicoOptions.slice(4, 8),
+];
+
 function RegistrarServico() {
   const [embarcacoes, setEmbarcacoes] = useState([]);
   const [funcionarios, setFuncionarios] = useState([]);
@@ -31,14 +49,14 @@ function RegistrarServico() {
     initialValues: {
       embarcacao_id: null,
       funcionario_id: null,
-      descricao: "",
+      descricao: [],
       data_execucao: new Date(),
       observacao: "",
     },
     validate: {
       embarcacao_id: (v) => (v === null ? "Selecione uma embarcação" : null),
       funcionario_id: (v) => (v === null ? "Selecione um funcionário" : null),
-      descricao: (v) => (v.trim().length === 0 ? "Descrição é obrigatória" : null),
+      descricao: (v) => (v.length === 0 ? "Selecione ao menos um serviço" : null),
       data_execucao: (v) => (v === null ? "Data é obrigatória" : null),
     },
   });
@@ -74,7 +92,7 @@ function RegistrarServico() {
         data: {
           embarcacao_id: Number(values.embarcacao_id),
           funcionario_id: Number(values.funcionario_id),
-          descricao: values.descricao,
+          descricao: values.descricao.join(", "),
           data_execucao: dataStr,
           observacao: values.observacao || null,
         },
@@ -173,14 +191,25 @@ function RegistrarServico() {
                 {...form.getInputProps("data_execucao")}
               />
 
-              <Textarea
-                label="Descrição do Serviço"
-                placeholder="Descreva o serviço executado..."
+              <Checkbox.Group
+                label="Serviços Realizados"
                 required
-                minRows={3}
-                autosize
                 {...form.getInputProps("descricao")}
-              />
+              >
+                <SimpleGrid cols={2} spacing="xl" mt="xs">
+                  {servicoOptionColumns.map((column, index) => (
+                    <Stack key={index} gap="xs">
+                      {column.map((servico) => (
+                        <Checkbox
+                          key={servico}
+                          value={servico}
+                          label={servico}
+                        />
+                      ))}
+                    </Stack>
+                  ))}
+                </SimpleGrid>
+              </Checkbox.Group>
 
               <Textarea
                 label="Observações"

@@ -25,6 +25,8 @@ import {
   IconUsers,
 } from "@tabler/icons-react";
 import { useTauriCommand } from "../hooks/useTauriCommand";
+import { useAuth } from "../contexts/AuthContext";
+import { formatPhoneNumber, normalizePhoneNumber } from "../utils/phone";
 
 function Funcionarios() {
   const [funcionarios, setFuncionarios] = useState([]);
@@ -32,6 +34,7 @@ function Funcionarios() {
   const [editando, setEditando] = useState(null);
   const [busca, setBusca] = useState("");
   const { execute, loading } = useTauriCommand();
+  const { isAdmin } = useAuth();
 
   const form = useForm({
     initialValues: {
@@ -65,17 +68,19 @@ function Funcionarios() {
   }, [carregarDados]);
 
   const abrirNovo = () => {
+    if (!isAdmin) return;
     setEditando(null);
     form.reset();
     setModalAberto(true);
   };
 
   const abrirEditar = (func) => {
+    if (!isAdmin) return;
     setEditando(func);
     form.setValues({
       nome: func.nome,
       cargo: func.cargo || "",
-      telefone: func.telefone || "",
+      telefone: formatPhoneNumber(func.telefone),
       ativo: func.ativo,
     });
     setModalAberto(true);
@@ -89,7 +94,7 @@ function Funcionarios() {
             id: editando.id,
             nome: values.nome,
             cargo: values.cargo || null,
-            telefone: values.telefone || null,
+            telefone: normalizePhoneNumber(values.telefone) || null,
             ativo: values.ativo,
           },
         });
@@ -103,7 +108,7 @@ function Funcionarios() {
           data: {
             nome: values.nome,
             cargo: values.cargo || null,
-            telefone: values.telefone || null,
+            telefone: normalizePhoneNumber(values.telefone) || null,
           },
         });
         notifications.show({
@@ -132,9 +137,11 @@ function Funcionarios() {
           <IconUsers size={28} stroke={1.5} color="var(--mantine-color-blue-6)" />
           <Title order={2}>Funcionários</Title>
         </Group>
-        <Button leftSection={<IconPlus size={16} />} onClick={abrirNovo}>
-          Novo Funcionário
-        </Button>
+        {isAdmin && (
+          <Button leftSection={<IconPlus size={16} />} onClick={abrirNovo}>
+            Novo Funcionário
+          </Button>
+        )}
       </Group>
 
       <Paper shadow="xs" p="md" radius="md" mb="md">
@@ -156,9 +163,11 @@ function Funcionarios() {
             <Stack align="center" gap="xs">
               <IconUsers size={48} stroke={1} color="var(--mantine-color-gray-4)" />
               <Text c="dimmed">Nenhum funcionário cadastrado</Text>
-              <Button variant="light" size="sm" onClick={abrirNovo}>
-                Cadastrar primeiro funcionário
-              </Button>
+              {isAdmin && (
+                <Button variant="light" size="sm" onClick={abrirNovo}>
+                  Cadastrar primeiro funcionário
+                </Button>
+              )}
             </Stack>
           </Center>
         </Paper>
@@ -171,7 +180,7 @@ function Funcionarios() {
                 <Table.Th>Cargo</Table.Th>
                 <Table.Th>Telefone</Table.Th>
                 <Table.Th>Situação</Table.Th>
-                <Table.Th w={60}>Ações</Table.Th>
+                {isAdmin && <Table.Th w={60}>Ações</Table.Th>}
               </Table.Tr>
             </Table.Thead>
             <Table.Tbody>
@@ -179,7 +188,7 @@ function Funcionarios() {
                 <Table.Tr key={func.id} style={{ opacity: func.ativo ? 1 : 0.6 }}>
                   <Table.Td fw={500}>{func.nome}</Table.Td>
                   <Table.Td>{func.cargo || "—"}</Table.Td>
-                  <Table.Td>{func.telefone || "—"}</Table.Td>
+                  <Table.Td>{formatPhoneNumber(func.telefone) || "—"}</Table.Td>
                   <Table.Td>
                     <Badge
                       variant="light"
@@ -189,17 +198,19 @@ function Funcionarios() {
                       {func.ativo ? "Ativo" : "Inativo"}
                     </Badge>
                   </Table.Td>
-                  <Table.Td>
-                    <Tooltip label="Editar">
-                      <ActionIcon
-                        variant="subtle"
-                        color="blue"
-                        onClick={() => abrirEditar(func)}
-                      >
-                        <IconEdit size={16} />
-                      </ActionIcon>
-                    </Tooltip>
-                  </Table.Td>
+                  {isAdmin && (
+                    <Table.Td>
+                      <Tooltip label="Editar">
+                        <ActionIcon
+                          variant="subtle"
+                          color="blue"
+                          onClick={() => abrirEditar(func)}
+                        >
+                          <IconEdit size={16} />
+                        </ActionIcon>
+                      </Tooltip>
+                    </Table.Td>
+                  )}
                 </Table.Tr>
               ))}
             </Table.Tbody>
@@ -230,7 +241,13 @@ function Funcionarios() {
             <TextInput
               label="Telefone"
               placeholder="(11) 99999-9999"
-              {...form.getInputProps("telefone")}
+              value={form.values.telefone}
+              onChange={(event) =>
+                form.setFieldValue(
+                  "telefone",
+                  formatPhoneNumber(event.currentTarget.value)
+                )
+              }
             />
             {editando && (
               <Switch
