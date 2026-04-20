@@ -8,7 +8,6 @@ mod services;
 
 use tauri::Manager;
 use std::sync::Mutex;
-use crate::models::user::Session;
 
 pub mod state {
     use rusqlite::Connection;

@@ -137,6 +137,7 @@ export default function Usuarios() {
         </div>
         <Button 
           radius="md"
+          onClick={() => setCreateOpened(true)}
         >
           Novo Usuário
         </Button>
