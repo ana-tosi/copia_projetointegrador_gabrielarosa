@@ -1,0 +1,43 @@
+name: Gerar instalador Windows
+
+on:
+  workflow_dispatch:
+
+jobs:
+  build-windows:
+    permissions:
+      contents: write
+
+    runs-on: windows-latest
+
+    steps:
+      - name: Baixar o código
+        uses: actions/checkout@v7
+
+      - name: Preparar o Node.js
+        uses: actions/setup-node@v6
+        with:
+          node-version: 20
+          
+      - name: Preparar o Rust
+        uses: dtolnay/rust-toolchain@stable
+
+      - name: Guardar o cache do Rust
+        uses: swatinem/rust-cache@v2
+        with:
+          workspaces: "./src-tauri -> target"
+
+      - name: Instalar as dependências
+        run: npm install
+
+      - name: Gerar e publicar o instalador
+        uses: tauri-apps/tauri-action@v1
+        env:
+          GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+        with:
+          tagName: marinaflow-v__VERSION__
+          releaseName: "MarinaFlow v__VERSION__"
+          releaseBody: "Instalador do MarinaFlow para Windows 64 bits."
+          releaseDraft: false
+          prerelease: false
+          args: --bundles nsis
